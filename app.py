@@ -1,7 +1,5 @@
-from crypt import methods
 from flask import Flask, jsonify, Response, request, json
 from iptc import iptc
-from pkg_resources import require
 
 app = Flask(__name__)
 
@@ -49,6 +47,31 @@ def delete_rule(table_name='filter', chain_name='', rule_order='1'):
     rule_d = iptc.easy.get_rule(table_name, chain_name, int(rule_order))
     iptc.easy.delete_rule(table_name, chain_name, rule_d)
     return jsonify(message="Delete rule sucessfully")
+  except ValueError as err:
+    print(err)
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+@app.route('/policy/<table_name>/<chain_name>')
+def get_policy(table_name='filter', chain_name=''):
+  if not chain_name:
+    return Response("{'message': 'Not found chain'}", status=500, mimetype='application/json')
+  try:
+    policy = iptc.easy.get_policy(table_name, chain_name)
+    return jsonify(policy=policy)
+  except ValueError as err:
+    print(err)
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+@app.route('/policy/<table_name>/<chain_name>', methods=['PUT'])
+def update_pocily(table_name='filter', chain_name=''):
+  if not chain_name:
+    return Response("{'message': 'Not found chain'}", status=500, mimetype='application/json')
+  try:
+    body = request.get_json()
+    print(table_name, chain_name, body)
+    new_policy = body['policy']
+    iptc.easy.set_policy(table_name, chain_name, new_policy)
+    return jsonify(message="Update policy sucessfully")
   except ValueError as err:
     print(err)
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
