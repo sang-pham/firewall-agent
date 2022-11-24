@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, Response, request, json
 from iptc import iptc
+from dotenv import load_dotenv, dotenv_values
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -81,4 +84,7 @@ def update_pocily(table_name='filter', chain_name=''):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    config = dotenv_values(".env")
+    host = config.get('HOST', 'localhost')
+    port = config.get('PORT', 8001)
+    app.run(host=host, port=port, debug=True)
