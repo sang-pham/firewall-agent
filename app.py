@@ -3,6 +3,10 @@ from iptc import iptc
 
 app = Flask(__name__)
 
+@app.route("/test-connection")
+def test_connection():
+  return Response(json.dumps({'message': 'Connect successfully'}), status=200, mimetype='application/json')
+
 @app.route("/rules")
 @app.route("/rules/<table_name>")
 @app.route("/rules/<table_name>/<chain_name>")
