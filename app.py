@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, Response, request, json
 from iptc import iptc
-from dotenv import load_dotenv, dotenv_values
-
-load_dotenv()
+from dotenv import dotenv_values
+import sys, getopt
 
 app = Flask(__name__)
 
@@ -87,4 +86,16 @@ if __name__ == '__main__':
     config = dotenv_values(".env")
     host = config.get('HOST', 'localhost')
     port = config.get('PORT', 8001)
+    argv = sys.argv[1:]
+    if len(argv) > 0:
+      try:
+        opts, args = getopt.getopt(argv,"h:p:",["host=","port="])
+      except getopt.GetoptError:
+        print('Error when loading arguments')
+      for opt, arg in opts:
+        if opt in ("-h", "--host"):
+          host = arg
+        elif opt in ("-p", "--port"):
+          port = arg
+    print(f'Agent will run on {host}:{port}')
     app.run(host=host, port=port, debug=True)
