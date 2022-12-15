@@ -82,6 +82,40 @@ def update_pocily(table_name='filter', chain_name=''):
     print(err)
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
+@app.route("/chains", methods=['POST'])
+def new_chain():
+  try:
+    body = request.get_json()
+    if not "data" in body:
+      raise ValueError('Data object must be specified')
+    data = body['data']
+    if not "table" in data:
+      raise ValueError('Table name must be specified')
+    if not "chain" in data:
+      raise ValueError('New chain name must be specified')
+    table = data['table']
+    chain = data['chain']
+    iptc.easy.add_chain(table, chain)
+    return jsonify(message=f'Create new chain {chain} in table {table} successfully')
+  except Exception as err:
+    print(err)
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+@app.route("/chains/<table_name>/<chain_name>", methods=['DELETE'])
+def delete_chain(table_name, chain_name):
+  try:
+    if not table_name:
+      raise ValueError('Table name must be specified')
+    if not chain_name:
+      raise ValueError('Chain name must be specified')
+    args = request.args
+    is_flush = args.get('is_flush')
+    iptc.easy.delete_chain(table_name, chain_name, False, is_flush)
+    return jsonify(message=f'Delete chain {chain_name} on table {table_name} succesfully')
+  except Exception as err:
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+
 if __name__ == '__main__':
     config = dotenv_values(".env")
     host = config.get('HOST', 'localhost')
