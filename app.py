@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, Response, request, json
-from iptc import iptc
+from iptc import iptc, Table, Chain
 from dotenv import dotenv_values
 import sys, getopt
 
@@ -44,6 +44,24 @@ def bulk_add_rule(table_name='filter', chain_name=''):
   except ValueError as err:
     print(err)
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json') 
+
+@app.route("/rules/flush", methods=['DELETE'])
+@app.route("/rules/flush/<table_name>", methods=['DELETE'])
+@app.route("/rules/flush/<table_name>/<chain_name>", methods=['DELETE'])
+def flush_rules(table_name = '', chain_name = ''):
+  print(table_name, chain_name)
+  try:
+    if not table_name and not chain_name:
+      iptc.easy.flush_all()
+      return jsonify(message='Flush all rules successfully')
+    if table_name and not chain_name:
+      iptc.easy.flush_table(table_name)
+      return jsonify(message=f'Flush all rules of table {table_name} successfully')
+    if table_name and chain_name:
+      iptc.easy.flush_chain(table_name, chain_name)
+      return jsonify(message=f'Flush all rules of chain {chain_name} in table {table_name} successfully')  
+  except Exception as err:
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route("/rules/<table_name>/<chain_name>/<rule_order>", methods=['DELETE'])
 def delete_rule(table_name='filter', chain_name='', rule_order='1'):
@@ -101,6 +119,55 @@ def new_chain():
     print(err)
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
+@app.route("/chains/zero", methods=['DELETE'])
+@app.route("/chains/zero/<table_name>", methods=['DELETE'])
+@app.route("/chains/zero/<table_name>/<chain_name>", methods=['DELETE'])
+def zero_chains(table_name = '', chain_name = ''):
+  try:
+    if not table_name and not chain_name:
+      tables = iptc.easy.get_tables()
+      if not tables or len(tables) == 0:
+        return Response(json.dumps({'message': 'Empty tables'}), status=500, mimetype='application/json')
+      print(tables)
+      for _table in tables:
+        print(_table)
+        table = iptc.easy._iptc_gettable(_table)
+        if not table:
+          continue
+        chains = table._get_chains()
+        if not chains or len(chains) == 0:
+          return Response(json.dumps({'message': f'Empty chains in table {_table}'}), status=500, mimetype='application/json')
+        for chain in chains:
+          chain.zero_counters()
+      return jsonify(message='Zero all chains successfully')
+
+    if table_name and not chain_name:
+      table = iptc.easy._iptc_gettable(table_name)
+      if not table:
+        return Response(json.dumps({'message': f'Table {table_name} doesn\'t exist'}), status=500, mimetype='application/json')
+      chains = table._get_chains()
+      if not chains or len(chains) == 0:
+        return Response(json.dumps({'message': f'Empty chains in table {_table}'}), status=500, mimetype='application/json')
+      for chain in chains:
+        chain.zero_counters()
+      return jsonify(message=f'Zero all chains of table {table_name} successfully')
+
+    if table_name and chain_name:
+      print('call here', chain_name)
+      table = iptc.easy._iptc_gettable(table_name)
+      if not table:
+        return Response(json.dumps({'message': f'Table {table_name} doesn\'t exist'}), status=500, mimetype='application/json')
+      chain = iptc.easy._iptc_getchain(table_name, chain_name)
+      if not chain:
+        return Response(json.dumps({'message': f'Chain {chain_name} in table {_table} doesn\'t exist'}), status=500, mimetype='application/json')
+      # chain.zero_counters()
+      table.zero_entries(chain_name)
+      # iptc.easy.zero_chain(table_name, chain_name)
+      return jsonify(message=f'Zero chain {chain_name} in table {table_name} successfully')  
+  except Exception as err:
+    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+
 @app.route("/chains/<table_name>/<chain_name>", methods=['DELETE'])
 def delete_chain(table_name, chain_name):
   try:
@@ -115,11 +182,10 @@ def delete_chain(table_name, chain_name):
   except Exception as err:
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
-
 if __name__ == '__main__':
     config = dotenv_values(".env")
     host = config.get('HOST', 'localhost')
-    port = config.get('PORT', 8001)
+    port = config.get('PORT', 5001)
     argv = sys.argv[1:]
     if len(argv) > 0:
       try:
