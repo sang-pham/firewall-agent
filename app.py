@@ -2,6 +2,7 @@ from flask import Flask, jsonify, Response, request, json
 from iptc import iptc, Table, Chain
 from dotenv import dotenv_values
 import sys, getopt
+import subprocess
 
 app = Flask(__name__)
 
@@ -181,6 +182,27 @@ def delete_chain(table_name, chain_name):
     return jsonify(message=f'Delete chain {chain_name} on table {table_name} succesfully')
   except Exception as err:
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+
+@app.route("/dump-rules")
+def get_verson():
+  # version_info = sys.version_info
+  # f = open("./test.txt", "w")
+  # output = None
+  # if version_info[0] < 3 or (version_info[0] == 3 and version_info[1] <= 4):
+  #   subprocess.call(["sudo", "iptables-save"], stdout=f)
+  # else:
+  #   subprocess.run(["sudo", "iptables-save"], stdout=f)
+  args = request.args
+  print(args)
+  cmd = "sudo iptables-save"
+  if args.get('keep_track'):
+    cmd += ' -c'
+  if args.get('table') is not None:
+    cmd += ' -t ' + args.get('table')
+  output = subprocess.check_output(cmd, shell=True)
+  output = output.decode('utf-8')
+  # print(output)
+  return jsonify(data=output)
 
 if __name__ == '__main__':
     config = dotenv_values(".env")
