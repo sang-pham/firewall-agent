@@ -184,7 +184,7 @@ def delete_chain(table_name, chain_name):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route("/dump-rules")
-def get_verson():
+def dump_rules():
   # version_info = sys.version_info
   # f = open("./test.txt", "w")
   # output = None
@@ -203,6 +203,33 @@ def get_verson():
   output = output.decode('utf-8')
   # print(output)
   return jsonify(data=output)
+
+@app.route('/import-rules', methods=['PUT'])
+def import_rules():
+  arrCmd = ["sudo", "iptables-restore", "./rules-import.txt"]
+  body = request.get_json()
+  data = body['data']
+  if not data or len(data) == 0:
+    return Response(json.dumps({'message': 'Invalid rules data'}), status=500, mimetype='application/json')
+  # f = open('./rules-import.txt', 'w')
+  # f.write(data)
+  if 'table' in body:
+    arrCmd.append("-T")
+    arrCmd.append(body['table'])
+  if 'counters' in body and body['counters']:
+    arrCmd.append('-c')
+  if 'noflush' in body and body['noflush']:
+    arrCmd.append('-n')
+  print(arrCmd)
+  version_info = sys.version_info
+  try:
+    if version_info[0] < 3 or (version_info[0] == 3 and version_info[1] <= 4):
+      subprocess.call(arrCmd)
+    else:
+      subprocess.run(arrCmd)
+  except Exception as ex:
+    print(ex)
+  return jsonify(data="Import rule successfully")
 
 if __name__ == '__main__':
     config = dotenv_values(".env")
