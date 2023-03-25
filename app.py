@@ -1,10 +1,24 @@
-from flask import Flask, jsonify, Response, request, json
+from flask import Flask, jsonify, Response, request, json, abort
 from iptc import iptc, Table, Chain
 from dotenv import dotenv_values
+from functools import wraps
 import sys, getopt
 import subprocess
 
 app = Flask(__name__)
+
+def require_appkey(view_function):
+  @wraps(view_function)
+  # the new, post-decoration function. Note *args and **kwargs here.
+  def decorated_function(*args, **kwargs):
+    with open('api.key', 'r') as apikey:
+      key=apikey.read().replace('\n', '')
+    #if request.args.get('key') and request.args.get('key') == key:
+    if request.headers.get('x-api-key') and request.headers.get('x-api-key') == key:
+      return view_function(*args, **kwargs)
+    else:
+      abort(401)
+  return decorated_function
 
 @app.route("/test-connection")
 def test_connection():
@@ -13,6 +27,7 @@ def test_connection():
 @app.route("/rules")
 @app.route("/rules/<table_name>")
 @app.route("/rules/<table_name>/<chain_name>")
+@require_appkey
 def list_rule(table_name='all', chain_name='all'):
   try:
     if table_name == 'all':
@@ -26,6 +41,7 @@ def list_rule(table_name='all', chain_name='all'):
 
 @app.route("/rules/<table_name>", methods=['POST'])
 @app.route("/rules/<table_name>/<chain_name>", methods=['POST'])
+@require_appkey
 def bulk_add_rule(table_name='filter', chain_name=''):
   print(chain_name)
   if not chain_name:
@@ -49,6 +65,7 @@ def bulk_add_rule(table_name='filter', chain_name=''):
 @app.route("/rules/flush", methods=['DELETE'])
 @app.route("/rules/flush/<table_name>", methods=['DELETE'])
 @app.route("/rules/flush/<table_name>/<chain_name>", methods=['DELETE'])
+@require_appkey
 def flush_rules(table_name = '', chain_name = ''):
   print(table_name, chain_name)
   try:
@@ -65,6 +82,7 @@ def flush_rules(table_name = '', chain_name = ''):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route("/rules/<table_name>/<chain_name>/<rule_order>", methods=['DELETE'])
+@require_appkey
 def delete_rule(table_name='filter', chain_name='', rule_order='1'):
   if not chain_name:
     return Response("{'message': 'Not found chain'}", status=500, mimetype='application/json')
@@ -77,6 +95,7 @@ def delete_rule(table_name='filter', chain_name='', rule_order='1'):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route('/policy/<table_name>/<chain_name>')
+@require_appkey
 def get_policy(table_name='filter', chain_name=''):
   if not chain_name:
     return Response("{'message': 'Not found chain'}", status=500, mimetype='application/json')
@@ -88,6 +107,7 @@ def get_policy(table_name='filter', chain_name=''):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route('/policy/<table_name>/<chain_name>', methods=['PUT'])
+@require_appkey
 def update_pocily(table_name='filter', chain_name=''):
   if not chain_name:
     return Response("{'message': 'Not found chain'}", status=500, mimetype='application/json')
@@ -102,6 +122,7 @@ def update_pocily(table_name='filter', chain_name=''):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route("/chains", methods=['POST'])
+@require_appkey
 def new_chain():
   try:
     body = request.get_json()
@@ -123,6 +144,7 @@ def new_chain():
 @app.route("/chains/zero", methods=['DELETE'])
 @app.route("/chains/zero/<table_name>", methods=['DELETE'])
 @app.route("/chains/zero/<table_name>/<chain_name>", methods=['DELETE'])
+@require_appkey
 def zero_chains(table_name = '', chain_name = ''):
   try:
     if not table_name and not chain_name:
@@ -170,6 +192,7 @@ def zero_chains(table_name = '', chain_name = ''):
 
 
 @app.route("/chains/<table_name>/<chain_name>", methods=['DELETE'])
+@require_appkey
 def delete_chain(table_name, chain_name):
   try:
     if not table_name:
@@ -184,6 +207,7 @@ def delete_chain(table_name, chain_name):
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
 @app.route("/dump-rules")
+@require_appkey
 def dump_rules():
   # version_info = sys.version_info
   # f = open("./test.txt", "w")
@@ -205,6 +229,7 @@ def dump_rules():
   return jsonify(data=output)
 
 @app.route('/import-rules', methods=['PUT'])
+@require_appkey
 def import_rules():
   arrCmd = ["sudo", "iptables-restore", "./rules-import.txt"]
   body = request.get_json()
