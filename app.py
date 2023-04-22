@@ -74,10 +74,10 @@ def flush_rules(table_name = '', chain_name = ''):
       return jsonify(message='Flush all rules successfully')
     if table_name and not chain_name:
       iptc.easy.flush_table(table_name)
-      return jsonify(message=f'Flush all rules of table {table_name} successfully')
+      return jsonify(message='Flush all rules of table ' + table_name + ' successfully')
     if table_name and chain_name:
       iptc.easy.flush_chain(table_name, chain_name)
-      return jsonify(message=f'Flush all rules of chain {chain_name} in table {table_name} successfully')  
+      return jsonify(message='Flush all rules of chain ' + chain_name + ' in table ' + table_name+ ' successfully')  
   except Exception as err:
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
@@ -102,9 +102,9 @@ def get_policy(table_name='filter', chain_name=''):
   try:
     policy = iptc.easy.get_policy(table_name, chain_name)
     return jsonify(policy=policy)
-  except ValueError as err:
+  except Exception as err:
     print(err)
-    return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
+    return Response(json.dumps({'message': str(err)}), status=400, mimetype='application/json')
 
 @app.route('/policy/<table_name>/<chain_name>', methods=['PUT'])
 @require_appkey
@@ -136,7 +136,7 @@ def new_chain():
     table = data['table']
     chain = data['chain']
     iptc.easy.add_chain(table, chain)
-    return jsonify(message=f'Create new chain {chain} in table {table} successfully')
+    return jsonify(message='Create new chain ' + chain + ' in table ' + table +  ' successfully')
   except Exception as err:
     print(err)
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
@@ -159,7 +159,7 @@ def zero_chains(table_name = '', chain_name = ''):
           continue
         chains = table._get_chains()
         if not chains or len(chains) == 0:
-          return Response(json.dumps({'message': f'Empty chains in table {_table}'}), status=500, mimetype='application/json')
+          return Response(json.dumps({'message': 'Empty chains in table ' + _table}), status=500, mimetype='application/json')
         for chain in chains:
           chain.zero_counters()
       return jsonify(message='Zero all chains successfully')
@@ -167,26 +167,26 @@ def zero_chains(table_name = '', chain_name = ''):
     if table_name and not chain_name:
       table = iptc.easy._iptc_gettable(table_name)
       if not table:
-        return Response(json.dumps({'message': f'Table {table_name} doesn\'t exist'}), status=500, mimetype='application/json')
+        return Response(json.dumps({'message': 'Table ' + table_name + ' doesn\'t exist'}), status=500, mimetype='application/json')
       chains = table._get_chains()
       if not chains or len(chains) == 0:
-        return Response(json.dumps({'message': f'Empty chains in table {_table}'}), status=500, mimetype='application/json')
+        return Response(json.dumps({'message': 'Empty chains in table ' + _table}), status=500, mimetype='application/json')
       for chain in chains:
         chain.zero_counters()
-      return jsonify(message=f'Zero all chains of table {table_name} successfully')
+      return jsonify(message='Zero all chains of table ' + table_name + ' successfully')
 
     if table_name and chain_name:
       print('call here', chain_name)
       table = iptc.easy._iptc_gettable(table_name)
       if not table:
-        return Response(json.dumps({'message': f'Table {table_name} doesn\'t exist'}), status=500, mimetype='application/json')
+        return Response(json.dumps({'message': 'Table ' + table_name + ' doesn\'t exist'}), status=500, mimetype='application/json')
       chain = iptc.easy._iptc_getchain(table_name, chain_name)
       if not chain:
-        return Response(json.dumps({'message': f'Chain {chain_name} in table {_table} doesn\'t exist'}), status=500, mimetype='application/json')
+        return Response(json.dumps({'message': 'Chain ' + chain_name + ' in table ' + _table + ' doesn\'t exist'}), status=500, mimetype='application/json')
       # chain.zero_counters()
       table.zero_entries(chain_name)
       # iptc.easy.zero_chain(table_name, chain_name)
-      return jsonify(message=f'Zero chain {chain_name} in table {table_name} successfully')  
+      return jsonify(message='Zero chain ' + chain_name + ' in table ' + table_name + ' successfully')  
   except Exception as err:
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
@@ -202,7 +202,7 @@ def delete_chain(table_name, chain_name):
     args = request.args
     is_flush = args.get('is_flush')
     iptc.easy.delete_chain(table_name, chain_name, False, is_flush)
-    return jsonify(message=f'Delete chain {chain_name} on table {table_name} succesfully')
+    return jsonify(message='Delete chain ' + chain_name + ' on table ' + table_name + ' succesfully')
   except Exception as err:
     return Response(json.dumps({'message': str(err)}), status=500, mimetype='application/json')
 
@@ -272,5 +272,5 @@ if __name__ == '__main__':
           host = arg
         elif opt in ("-p", "--port"):
           port = arg
-    print(f'Agent will run on {host}:{port}')
+    print('Agent will run on ' +  host + ':' + port)
     app.run(host=host, port=port, debug=True)
