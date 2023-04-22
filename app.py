@@ -236,8 +236,9 @@ def import_rules():
   data = body['data']
   if not data or len(data) == 0:
     return Response(json.dumps({'message': 'Invalid rules data'}), status=500, mimetype='application/json')
-  # f = open('./rules-import.txt', 'w')
-  # f.write(data)
+  f = open('./rules-import.txt', 'w')
+  f.write(data)
+  f.close()
   if 'table' in body:
     arrCmd.append("-T")
     arrCmd.append(body['table'])
