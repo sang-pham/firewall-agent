@@ -233,7 +233,7 @@ def dump_rules():
 @app.route('/import-rules', methods=['PUT'])
 @require_appkey
 def import_rules():
-  arrCmd = ["sudo", "iptables-restore", "./rules-import.txt"]
+  arrCmd = ["sudo", "iptables-restore", dir_path + "/rules-import.txt"]
   body = request.get_json()
   data = body['data']
   if not data or len(data) == 0:
