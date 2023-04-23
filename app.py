@@ -3,15 +3,17 @@ from iptc import iptc, Table, Chain
 from dotenv import dotenv_values
 from functools import wraps
 import sys, getopt
+import os
 import subprocess
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__)
 
 def require_appkey(view_function):
   @wraps(view_function)
   # the new, post-decoration function. Note *args and **kwargs here.
   def decorated_function(*args, **kwargs):
-    with open('api.key', 'r') as apikey:
+    with open(dir_path + '/api.key', 'r') as apikey:
       key=apikey.read().replace('\n', '')
     #if request.args.get('key') and request.args.get('key') == key:
     if request.headers.get('x-api-key') and request.headers.get('x-api-key') == key:
@@ -236,7 +238,7 @@ def import_rules():
   data = body['data']
   if not data or len(data) == 0:
     return Response(json.dumps({'message': 'Invalid rules data'}), status=500, mimetype='application/json')
-  f = open('./rules-import.txt', 'w')
+  f = open(dir_path + '/rules-import.txt', 'w')
   f.write(data)
   f.close()
   if 'table' in body:
@@ -272,5 +274,5 @@ if __name__ == '__main__':
           host = arg
         elif opt in ("-p", "--port"):
           port = arg
-    print('Agent will run on ' +  host + ':' + port)
+    print('Agent will run on ' +  str(host) + ':' + str(port))
     app.run(host=host, port=port, debug=True)
